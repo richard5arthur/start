@@ -1,55 +1,66 @@
-# start
+# Octopus Agile price alert
 
-A starting point for a new Python project.
+Checks Octopus Agile electricity prices (the same data shown on
+[octopriceuk.app/agile](https://www.octopriceuk.app/agile)) and emails
+rrwwallace@gmail.com when any half-hour slot is **below 5p/kWh** (inc VAT).
 
-## Status
+Prices come straight from the public Octopus Energy API, which is the data source
+behind octopriceuk.app. That's more reliable than scraping the page, which is
+rendered in the browser with JavaScript. The current Agile product is found
+automatically, so nothing breaks when Octopus releases a new Agile version.
 
-This repository is in its initial stage. It currently contains:
+Each email groups back-to-back cheap slots into windows, shows times in UK local
+time, and flags negative prices (you get paid to use power). Slots already emailed
+about are remembered, so you aren't sent the same slot twice.
 
-| File         | Purpose                                                                                   |
-| ------------ | ----------------------------------------------------------------------------------------- |
-| `README.md`  | This file — an overview of the project.                                                    |
-| `.gitignore` | The standard Python ignore rules (bytecode, virtual environments, build output, caches, etc.). |
+## Setup (runs free on GitHub Actions)
 
-No application code has been added yet.
+1. **Create a Gmail app password**: Google Account → Security → 2-Step Verification
+   → App passwords. (Your normal Gmail password won't work.)
+2. In this repo on GitHub go to **Settings → Secrets and variables → Actions** and add:
+   - Secret `SMTP_USER`: your Gmail address, e.g. `rrwwallace@gmail.com`
+   - Secret `SMTP_PASSWORD`: the 16-character app password
+   - Variable `AGILE_REGION` (optional, default `C` = London): your region letter, below
+   - Variable `PRICE_THRESHOLD` (optional, default `5`): the alert threshold in p/kWh
+3. Open **Actions → Agile price alert → Run workflow** to test it straight away.
 
-## Getting started
+After that it runs every hour by itself. Note: GitHub pauses scheduled workflows
+after 60 days without any commits to the repo. It emails you when it does this, and
+you can turn it back on from the Actions tab.
 
-Clone the repository and set up a virtual environment:
+### Region letters
 
-```bash
-git clone https://github.com/richard5arthur/start.git
-cd start
-python3 -m venv .venv
-source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+| Letter | Region | Letter | Region |
+|---|---|---|---|
+| A | Eastern England | H | Southern England |
+| B | East Midlands | J | South Eastern England |
+| C | London | K | South Wales |
+| D | Merseyside and North Wales | L | South Western England |
+| E | West Midlands | M | Yorkshire |
+| F | North Eastern England | N | Southern Scotland |
+| G | North Western England | P | Northern Scotland |
+
+You can find your region by putting your postcode into octopriceuk.app.
+
+## Running it on your own computer
+
+Python 3.9+ only. No packages to install.
+
+```sh
+export SMTP_USER=rrwwallace@gmail.com SMTP_PASSWORD='your app password' AGILE_REGION=C
+python3 agile_alert.py --dry-run   # print what would be sent
+python3 agile_alert.py             # send the email
 ```
 
-As the project grows, install its dependencies with:
+To run it hourly, add a cron entry such as `7 * * * * cd /path/to/repo && python3 agile_alert.py`.
 
-```bash
-pip install -r requirements.txt
+All the settings: `PRICE_THRESHOLD` (default `5`), `AGILE_REGION` (default `C`),
+`ALERT_TO` (default `rrwwallace@gmail.com`), `SMTP_HOST`/`SMTP_PORT`
+(default Gmail, `smtp.gmail.com:465`), `AGILE_PRODUCT` (to pin a specific
+Agile product code), `STATE_FILE` (default `alerted_slots.json`).
+
+## Tests
+
+```sh
+python3 -m unittest discover -s tests
 ```
-
-(once a `requirements.txt` or `pyproject.toml` has been added).
-
-## Suggested layout
-
-As code is added, a conventional structure keeps things easy to navigate:
-
-```
-start/
-├── src/            # application / library code
-├── tests/          # tests (e.g. pytest)
-├── requirements.txt or pyproject.toml
-└── README.md
-```
-
-## Contributing
-
-1. Create a branch for your change.
-2. Commit with clear, descriptive messages.
-3. Open a pull request against `master`.
-
-## License
-
-No license has been chosen yet. Until one is added, all rights are reserved by the repository owner.
