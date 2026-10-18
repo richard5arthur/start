@@ -6,6 +6,10 @@ on:
     # already-alerted slots are remembered, so you only get emailed about new ones.
     - cron: "7 * * * *"
   workflow_dispatch:
+    inputs:
+      threshold:
+        description: "Test run: alert on prices below this many p/kWh (leave blank for the normal setting)"
+        required: false
 
 jobs:
   check-prices:
@@ -30,5 +34,7 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           ALERT_TO: rrwwallace@gmail.com
           AGILE_REGION: ${{ vars.AGILE_REGION || 'C' }}
-          PRICE_THRESHOLD: ${{ vars.PRICE_THRESHOLD || '5' }}
+          PRICE_THRESHOLD: ${{ inputs.threshold || vars.PRICE_THRESHOLD || '5' }}
+          # Test runs use a throwaway history so they don't affect real alerts.
+          STATE_FILE: ${{ inputs.threshold && 'test_state.json' || 'alerted_slots.json' }}
         run: python agile_alert.py
