@@ -1,0 +1,34 @@
+name: Agile price alert
+
+on:
+  schedule:
+    # Hourly. Agile prices for the next day are published around 16:00 UK time;
+    # already-alerted slots are remembered, so you only get emailed about new ones.
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Restore alerted-slot history
+        uses: actions/cache@v4
+        with:
+          path: alerted_slots.json
+          key: agile-state-${{ github.run_id }}
+          restore-keys: agile-state-
+
+      - name: Check prices and send alert
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          ALERT_TO: rrwwallace@gmail.com
+          AGILE_REGION: ${{ vars.AGILE_REGION || 'C' }}
+          PRICE_THRESHOLD: ${{ vars.PRICE_THRESHOLD || '5' }}
+        run: python agile_alert.py
